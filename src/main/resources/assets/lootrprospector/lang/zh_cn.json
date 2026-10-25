@@ -1,0 +1,13 @@
+{
+  "item.lootrprospector.divining_rod": "探测之杖",
+  "item.lootrprospector.divining_rod.tooltip.radius": "探测半径：%d 格",
+  "item.lootrprospector.divining_rod.tooltip.cooldown": "冷却时间：%d 秒",
+  "item.lootrprospector.divining_rod.tooltip.opened": "只显示你尚未开启的 Lootr 容器",
+  "message.lootrprospector.cooldown": "探测之杖还在冷却中",
+  "message.lootrprospector.none": "在 %d 格内没有你尚未开启的 Lootr 容器",
+  "message.lootrprospector.found": "找到 %d 个你尚未开启的 Lootr 容器（扫描半径 %d 格，最近 %d 格）",
+  "message.lootrprospector.list_header": "最近的 %d 个未开启 Lootr 容器：",
+  "message.lootrprospector.list_entry": "%d. [%d, %d, %d] - 距离 %d 格",
+  "message.lootrprospector.unloaded_hint": "（部分区块未加载，结果可能不完整）",
+  "message.lootrprospector.truncated": "（仅显示最近 %d 个）"
+}

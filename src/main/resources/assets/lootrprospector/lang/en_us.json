@@ -1,0 +1,13 @@
+{
+  "item.lootrprospector.divining_rod": "Divining Rod",
+  "item.lootrprospector.divining_rod.tooltip.radius": "Scan radius: %d blocks",
+  "item.lootrprospector.divining_rod.tooltip.cooldown": "Cooldown: %d seconds",
+  "item.lootrprospector.divining_rod.tooltip.opened": "Only finds Lootr containers you have not opened",
+  "message.lootrprospector.cooldown": "The Divining Rod is still cooling down",
+  "message.lootrprospector.none": "No unopened Lootr containers within %d blocks",
+  "message.lootrprospector.found": "Found %d unopened Lootr container(s) within %d blocks (nearest: %d blocks)",
+  "message.lootrprospector.list_header": "Nearest %d unopened Lootr containers:",
+  "message.lootrprospector.list_entry": "%d. [%d, %d, %d] - %d blocks",
+  "message.lootrprospector.unloaded_hint": " (some chunks were not loaded; results may be incomplete)",
+  "message.lootrprospector.truncated": " (only showing the nearest %d)"
+}
