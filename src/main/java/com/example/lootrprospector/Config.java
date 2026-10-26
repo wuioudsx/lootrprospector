@@ -21,6 +21,15 @@ public final class Config {
                     "This keeps a large scan radius from blocking the server tick.")
             .defineInRange("scanTimeBudgetMs", 5, 0, 50);
 
+    private static final ForgeConfigSpec.BooleanValue ENABLE_STRUCTURE_PROGRESS = BUILDER
+            .comment("Show the Lootr container progress of the structure the player is standing in.")
+            .define("enableStructureProgress", true);
+
+    private static final ForgeConfigSpec.IntValue STRUCTURE_PROGRESS_BUDGET_MS = BUILDER
+            .comment("Soft time budget for the structure progress lookup, in milliseconds (0 = unlimited).",
+                    "Only loaded chunks are counted; large structures may be incomplete.")
+            .defineInRange("structureProgressBudgetMs", 3, 0, 50);
+
     private static final ForgeConfigSpec.IntValue COOLDOWN_TICKS = BUILDER
             .comment("Cooldown between uses, in ticks.")
             .defineInRange("cooldownTicks", 100, 20, 1200);
@@ -61,6 +70,8 @@ public final class Config {
 
     public static volatile int scanRadius = 64;
     public static volatile int scanTimeBudgetMs = 5;
+    public static volatile boolean enableStructureProgress = true;
+    public static volatile int structureProgressBudgetMs = 3;
     public static volatile int cooldownTicks = 100;
     public static volatile int highlightTicks = 300;
     public static volatile int maxHighlights = 128;
@@ -84,6 +95,8 @@ public final class Config {
         }
         scanRadius = SCAN_RADIUS.get();
         scanTimeBudgetMs = SCAN_TIME_BUDGET_MS.get();
+        enableStructureProgress = ENABLE_STRUCTURE_PROGRESS.get();
+        structureProgressBudgetMs = STRUCTURE_PROGRESS_BUDGET_MS.get();
         cooldownTicks = COOLDOWN_TICKS.get();
         highlightTicks = HIGHLIGHT_TICKS.get();
         maxHighlights = MAX_HIGHLIGHTS.get();

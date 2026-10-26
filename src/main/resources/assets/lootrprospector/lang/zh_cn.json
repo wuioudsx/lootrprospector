@@ -8,6 +8,9 @@
   "message.lootrprospector.found": "找到 %d 个你尚未开启的 Lootr 容器（扫描半径 %d 格，最近 %d 格）",
   "message.lootrprospector.list_header": "最近的 %d 个未开启 Lootr 容器：",
   "message.lootrprospector.list_entry": "%d. [%d, %d, %d] - 距离 %d 格",
+  "message.lootrprospector.structure_progress": "，结构探索进度 %d/%d",
+  "message.lootrprospector.structure_unloaded": "（结构内部分区块未加载，进度可能不完整）",
+  "message.lootrprospector.structure_budget": "（结构进度扫描达到时间预算，进度可能不完整）",
   "message.lootrprospector.unloaded_hint": "（部分区块未加载，结果可能不完整）",
   "message.lootrprospector.budget": "（扫描达到时间预算，结果可能不完整）",
   "message.lootrprospector.truncated": "（仅显示最近 %d 个）"

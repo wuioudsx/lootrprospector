@@ -8,6 +8,9 @@
   "message.lootrprospector.found": "Found %d unopened Lootr container(s) within %d blocks (nearest: %d blocks)",
   "message.lootrprospector.list_header": "Nearest %d unopened Lootr containers:",
   "message.lootrprospector.list_entry": "%d. [%d, %d, %d] - %d blocks",
+  "message.lootrprospector.structure_progress": ", structure progress: %d/%d",
+  "message.lootrprospector.structure_unloaded": " (some structure chunks were not loaded; progress may be incomplete)",
+  "message.lootrprospector.structure_budget": " (structure progress hit its time budget; progress may be incomplete)",
   "message.lootrprospector.unloaded_hint": " (some chunks were not loaded; results may be incomplete)",
   "message.lootrprospector.budget": " (scan time budget reached; results may be incomplete)",
   "message.lootrprospector.truncated": " (only showing the nearest %d)"

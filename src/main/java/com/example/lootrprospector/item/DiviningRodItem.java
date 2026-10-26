@@ -6,6 +6,8 @@ import com.example.lootrprospector.network.ModNetwork;
 import com.example.lootrprospector.network.ScanResultPacket;
 import com.example.lootrprospector.scan.ContainerScanner;
 import com.example.lootrprospector.scan.ScanResult;
+import com.example.lootrprospector.scan.StructureProgress;
+import com.example.lootrprospector.scan.StructureProgressScanner;
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
@@ -79,18 +81,25 @@ public class DiviningRodItem extends Item {
     private void scan(ServerPlayer player) {
         long start = System.nanoTime();
         ScanResult result = ContainerScanner.scan(player, Config.scanRadius);
+        StructureProgress structureProgress = StructureProgressScanner.scan(player);
         long elapsedMicros = (System.nanoTime() - start) / 1_000L;
 
         if (Config.debugLogScan) {
             LootrProspector.LOGGER.info(
                     "Divining rod scan by {}: total={}, chunks={} (unloaded={}), blockEntities={}, "
-                            + "budgetExceeded={}, took={} us",
+                            + "budgetExceeded={}, structure={}, structureProgress={}/{}, "
+                            + "structureIncomplete={}, took={} us",
                     player.getGameProfile().getName(), result.total(), result.scannedChunks(),
                     result.unloadedChunks(), result.scannedBlockEntities(),
-                    result.budgetExceeded(), elapsedMicros);
+                    result.budgetExceeded(),
+                    structureProgress == null ? "-" : structureProgress.name(),
+                    structureProgress == null ? 0 : structureProgress.opened(),
+                    structureProgress == null ? 0 : structureProgress.total(),
+                    structureProgress != null && structureProgress.incomplete(),
+                    elapsedMicros);
         }
 
-        sendFeedback(player, result);
+        sendFeedback(player, result, structureProgress);
 
         if (Config.enableHighlight) {
             ModNetwork.sendToPlayer(player, new ScanResultPacket(
@@ -104,7 +113,7 @@ public class DiviningRodItem extends Item {
         player.getCooldowns().addCooldown(this, Config.cooldownTicks);
     }
 
-    private void sendFeedback(ServerPlayer player, ScanResult result) {
+    private void sendFeedback(ServerPlayer player, ScanResult result, StructureProgress structureProgress) {
         Component message;
         if (result.total() == 0) {
             message = Component.translatable("message.lootrprospector.none", result.radius());
@@ -123,6 +132,20 @@ public class DiviningRodItem extends Item {
             message = message.copy().append(
                     Component.translatable("message.lootrprospector.truncated", Config.maxHighlights));
         }
+
+        if (structureProgress != null && structureProgress.total() > 0) {
+            message = message.copy().append(Component.translatable(
+                    "message.lootrprospector.structure_progress",
+                    structureProgress.opened(), structureProgress.total()));
+            if (structureProgress.budgetExceeded()) {
+                message = message.copy().append(
+                        Component.translatable("message.lootrprospector.structure_budget"));
+            } else if (structureProgress.unloadedChunks() > 0 && Config.showUnloadedHint) {
+                message = message.copy().append(
+                        Component.translatable("message.lootrprospector.structure_unloaded"));
+            }
+        }
+
         player.displayClientMessage(message, true);
 
         if (result.total() > 0 && Config.chatListLimit > 0) {
