@@ -9,5 +9,6 @@
   "message.lootrprospector.list_header": "Nearest %d unopened Lootr containers:",
   "message.lootrprospector.list_entry": "%d. [%d, %d, %d] - %d blocks",
   "message.lootrprospector.unloaded_hint": " (some chunks were not loaded; results may be incomplete)",
+  "message.lootrprospector.budget": " (scan time budget reached; results may be incomplete)",
   "message.lootrprospector.truncated": " (only showing the nearest %d)"
 }

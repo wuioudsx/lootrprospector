@@ -10,8 +10,16 @@ public final class Config {
     private static final ForgeConfigSpec.Builder BUILDER = new ForgeConfigSpec.Builder();
 
     private static final ForgeConfigSpec.IntValue SCAN_RADIUS = BUILDER
-            .comment("Scan radius in blocks.")
-            .defineInRange("scanRadius", 64, 8, 128);
+            .comment("Scan radius in blocks (8-256).",
+                    "Only loaded chunks are scanned. A radius larger than the server view distance",
+                    "mostly adds unloaded-chunk checks and cannot find containers in unloaded chunks.")
+            .defineInRange("scanRadius", 64, 8, 256);
+
+    private static final ForgeConfigSpec.IntValue SCAN_TIME_BUDGET_MS = BUILDER
+            .comment("Soft time budget for one scan, in milliseconds (0 = unlimited).",
+                    "If the budget is reached, the scan stops early and reports incomplete results.",
+                    "This keeps a large scan radius from blocking the server tick.")
+            .defineInRange("scanTimeBudgetMs", 5, 0, 50);
 
     private static final ForgeConfigSpec.IntValue COOLDOWN_TICKS = BUILDER
             .comment("Cooldown between uses, in ticks.")
@@ -51,23 +59,31 @@ public final class Config {
 
     public static final ForgeConfigSpec SPEC = BUILDER.build();
 
-    public static int scanRadius = 64;
-    public static int cooldownTicks = 100;
-    public static int highlightTicks = 300;
-    public static int maxHighlights = 128;
-    public static int chatListLimit = 5;
-    public static boolean scanMinecarts = true;
-    public static boolean enableHighlight = true;
-    public static boolean playSound = true;
-    public static boolean showUnloadedHint = true;
-    public static boolean debugLogScan = false;
+    public static volatile int scanRadius = 64;
+    public static volatile int scanTimeBudgetMs = 5;
+    public static volatile int cooldownTicks = 100;
+    public static volatile int highlightTicks = 300;
+    public static volatile int maxHighlights = 128;
+    public static volatile int chatListLimit = 5;
+    public static volatile boolean scanMinecarts = true;
+    public static volatile boolean enableHighlight = true;
+    public static volatile boolean playSound = true;
+    public static volatile boolean showUnloadedHint = true;
+    public static volatile boolean debugLogScan = false;
 
     private Config() {
     }
 
     @SubscribeEvent
     static void onConfigChanged(final ModConfigEvent event) {
+        // ModConfigEvent is fired for every mod's config on the mod bus. Ignore other
+        // specs, and do not read values while our own spec is being unloaded.
+        if (event.getConfig().getSpec() != SPEC
+                || !(event instanceof ModConfigEvent.Loading || event instanceof ModConfigEvent.Reloading)) {
+            return;
+        }
         scanRadius = SCAN_RADIUS.get();
+        scanTimeBudgetMs = SCAN_TIME_BUDGET_MS.get();
         cooldownTicks = COOLDOWN_TICKS.get();
         highlightTicks = HIGHLIGHT_TICKS.get();
         maxHighlights = MAX_HIGHLIGHTS.get();

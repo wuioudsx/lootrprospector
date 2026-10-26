@@ -83,8 +83,11 @@ public class DiviningRodItem extends Item {
 
         if (Config.debugLogScan) {
             LootrProspector.LOGGER.info(
-                    "Divining rod scan by {}: total={}, unloadedChunks={}, took={} us",
-                    player.getGameProfile().getName(), result.total(), result.unloadedChunks(), elapsedMicros);
+                    "Divining rod scan by {}: total={}, chunks={} (unloaded={}), blockEntities={}, "
+                            + "budgetExceeded={}, took={} us",
+                    player.getGameProfile().getName(), result.total(), result.scannedChunks(),
+                    result.unloadedChunks(), result.scannedBlockEntities(),
+                    result.budgetExceeded(), elapsedMicros);
         }
 
         sendFeedback(player, result);
@@ -111,7 +114,9 @@ public class DiviningRodItem extends Item {
                     result.total(), result.radius(), Math.round(nearest));
         }
 
-        if (result.unloadedChunks() > 0 && Config.showUnloadedHint) {
+        if (result.budgetExceeded()) {
+            message = message.copy().append(Component.translatable("message.lootrprospector.budget"));
+        } else if (result.unloadedChunks() > 0 && Config.showUnloadedHint) {
             message = message.copy().append(Component.translatable("message.lootrprospector.unloaded_hint"));
         }
         if (result.truncated()) {

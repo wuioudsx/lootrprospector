@@ -1,8 +1,8 @@
 # Lootr Prospector
 
 A small Forge 1.20.1 addon for [Lootr](https://www.curseforge.com/minecraft/mc-mods/lootr):
-a **Divining Rod** that finds Lootr containers within 64 blocks that **you**
-have not opened yet.
+a **Divining Rod** that finds Lootr containers within a configurable radius
+(64 blocks by default) that **you** have not opened yet.
 
 Lootr gives every player their own loot state. This mod reads Lootr's public
 `IHasOpeners` data on the server and only reports containers whose opener set
@@ -11,16 +11,18 @@ already looted is still visible to you.
 
 ## Features
 
-- Right-click to scan a 64-block sphere around the player.
+- Right-click to scan a sphere around the player (64 blocks by default,
+  configurable from 8 to 256 blocks).
 - Finds Lootr chests, trapped chests, barrels, shulkers, `lootr_inventory`
   blocks and (optionally) Lootr chest minecarts.
-- Server-authoritative filtering and cooldown.
+- Server-authoritative filtering, cooldown and scan-time budget.
 - Action bar summary, optional nearest-first coordinate list in chat, and sound
   feedback.
 - Client-side through-wall gold outlines for up to 128 results, for 15 seconds.
-- Configurable radius, cooldown, highlight duration, result cap, minecart
-  scanning, sounds and highlight toggle.
-- Only scans loaded chunks; it never forces chunk loading.
+- Configurable radius, scan budget, cooldown, highlight duration, result cap,
+  minecart scanning, sounds and highlight toggle.
+- Only scans loaded chunks; it never forces chunk loading. A scan that exceeds
+  its time budget stops early and says that the results may be incomplete.
 
 ## Requirements
 
@@ -39,7 +41,7 @@ already looted is still visible to you.
    .\gradlew.bat build --console=plain
    ```
 
-3. The mod jar is written to `build/libs/lootrprospector-0.1.0.jar`.
+3. The mod jar is written to `build/libs/lootrprospector-0.2.0.jar`.
 
 For development, `.\gradlew.bat runClient` and `.\gradlew.bat runServer` use
 the local Lootr jar through ForgeGradle.
@@ -52,12 +54,16 @@ the local Lootr jar through ForgeGradle.
   container scans instead of opening it.
 - Default cooldown: 5 seconds.
 - Config file: `config/lootrprospector-common.toml`.
+- On a dedicated server, edit the **server's** config file. The server's values
+  control scanning and cooldown; a client's local file only affects local
+  display such as the tooltip.
 
 ## Configuration
 
 | Key | Default | Meaning |
 |---|---:|---|
-| `scanRadius` | 64 | Scan sphere radius in blocks (8–128) |
+| `scanRadius` | 64 | Scan sphere radius in blocks (8–256) |
+| `scanTimeBudgetMs` | 5 | Soft per-scan time budget in milliseconds; 0 = unlimited. Exceeding it stops the scan early and reports incomplete results |
 | `cooldownTicks` | 100 | Cooldown between scans |
 | `highlightTicks` | 300 | Client highlight duration (15 s) |
 | `maxHighlights` | 128 | Maximum positions sent/highlighted |
@@ -66,12 +72,66 @@ the local Lootr jar through ForgeGradle.
 | `enableHighlight` | true | Send positions for client outlines |
 | `playSound` | true | Play scan feedback sounds |
 | `showUnloadedHint` | true | Warn when some chunks in range are unloaded |
-| `debugLogScan` | false | Log scan counts and duration |
+| `debugLogScan` | false | Log scan chunk/block-entity counts, budget status and duration |
+
+Forge configs are normally reloaded when the file is edited. If a value does
+not take effect, restart the world/server. Values outside the documented range
+are corrected by Forge's config validator.
+
+## Performance and high scan radii
+
+The scanner does **not** walk every block. It visits loaded chunk columns in
+range and iterates their block-entity maps, so the cost is roughly:
+
+```
+(number of loaded chunk columns in range) × (block entities per chunk)
+```
+
+The chunk-column count grows quadratically with radius:
+
+| `scanRadius` | Chunk columns in the square range |
+|---:|---:|
+| 64 | 81 |
+| 128 | 289 |
+| 192 | 625 |
+| 256 | 1089 |
+| 512 (not allowed) | 4225 |
+
+Only loaded chunks are actually scanned; `getChunkNow` returns `null` for the
+rest without loading them. If the radius is larger than the server view
+distance, most of the extra area is simply unloaded and cannot be searched. At
+a typical view distance the number of loaded chunks, not the configured radius,
+is the real limit on work.
+
+Other costs to keep in mind:
+
+- `maxHighlights` caps both the network packet and the number of boxes drawn by
+  the client every frame. Keep it at 128–512.
+- `scanMinecarts` uses an entity AABB query; on servers with very large entity
+  counts it can be more expensive than the block-entity scan. Disable it if you
+  do not need minecart detection.
+- `scanTimeBudgetMs` is the safety valve. A scan checks the budget between
+  chunks (and every 256 block entities) and stops when it is exceeded, so one
+  scan cannot block the server tick indefinitely. The default is 5 ms; setting
+  it to `0` removes the limit and is only recommended for small radii or
+  single-player worlds.
+- Cooldowns are per player. Several players scanning in the same tick each pay
+  their own scan cost; there is no global rate limiter.
+
+For a large radius, the practical result is usually **incomplete rather than
+slow**: the scan stops at the time budget and the action bar says so. Raise
+`scanTimeBudgetMs` if you prefer completeness and accept a longer tick, or
+lower the radius. Do not set both a huge radius and an unlimited budget on a
+public server.
 
 ## Known limitations
 
-- Only **loaded** chunks are scanned. Chunks at the edge of a very low view
-  distance may be missing; the mod warns instead of forcing chunk loads.
+- Only **loaded** chunks are scanned. Chunks beyond the server view distance
+  are missing; the mod warns instead of forcing chunk loads.
+- Despite the 3D sphere check, chunk columns cover the full world height, so a
+  tall world with many block entities increases the per-column cost.
+- `scanTimeBudgetMs` can intentionally truncate a scan; this is reported in the
+  action bar and in the debug log.
 - Lootr's `openers` records "opened", not "loot still available". If you enable
   Lootr's refresh features, a refreshed container may still count as opened.
 - `lootr:containers` includes `lootr:lootr_inventory`; all Lootr containers are

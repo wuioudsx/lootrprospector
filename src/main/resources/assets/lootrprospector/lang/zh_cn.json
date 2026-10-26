@@ -9,5 +9,6 @@
   "message.lootrprospector.list_header": "最近的 %d 个未开启 Lootr 容器：",
   "message.lootrprospector.list_entry": "%d. [%d, %d, %d] - 距离 %d 格",
   "message.lootrprospector.unloaded_hint": "（部分区块未加载，结果可能不完整）",
+  "message.lootrprospector.budget": "（扫描达到时间预算，结果可能不完整）",
   "message.lootrprospector.truncated": "（仅显示最近 %d 个）"
 }
