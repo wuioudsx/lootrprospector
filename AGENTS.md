@@ -654,6 +654,8 @@ RenderSystem.disableBlend();
 11. **性能有疑问先测量。** 在密集区域记录扫描耗时；不要为了“看起来快”引入异步线程访问世界。
 12. **测试多人。** 这个 mod 的核心语义是“按玩家独立”，单人测试只能覆盖一半；至少用两个玩家验证一次。
 13. **DeferredRegister 的条目类必须初始化。** 本 mod 在 `LootrProspector` 构造器里调用 `ModItems.init()` 强制类初始化；如果只声明 `ITEMS` 而不触发 `ModItems` 类初始化，物品不会注册，配方会报 `Unknown item 'lootrprospector:divining_rod'`（开发服务器上已经踩过这个坑）。
+14. **每次改动都要 commit。** 完成一个可工作的改动后，立刻 `git add` + `git commit`，不要攒大量未提交改动；commit 前先 `git status` 确认没有把 `run/`、`build/`、`libs/*.jar` 等本地/第三方文件加进去。
+15. **push 必须等用户指令。** 默认只 commit，不执行 `git push`；只有用户明确说“push / 上传 / 同步到 GitHub”时才推送。若用户没有说，最多在回复里提醒“本地已 commit，尚未 push”。
 
 ## 14. 后续可选
 
