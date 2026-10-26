@@ -165,7 +165,9 @@ public final class StructureProgressScanner {
 
         ResourceLocation id = structureId(level, start.getStructure());
         String name = id == null ? "unknown" : id.getPath().replace('_', ' ');
-        return new StructureProgress(name, opened, total, unloadedChunks, scannedChunks, budgetExceeded);
+        String key = (id == null ? "unknown" : id.toString()) + "@"
+                + start.getChunkPos().x + "," + start.getChunkPos().z;
+        return new StructureProgress(name, key, opened, total, unloadedChunks, scannedChunks, budgetExceeded);
     }
 
     private static boolean hasPieceAt(StructureStart start, BlockPos pos) {

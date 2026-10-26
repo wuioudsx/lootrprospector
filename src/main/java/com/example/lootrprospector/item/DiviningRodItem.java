@@ -8,6 +8,7 @@ import com.example.lootrprospector.scan.ContainerScanner;
 import com.example.lootrprospector.scan.ScanResult;
 import com.example.lootrprospector.scan.StructureProgress;
 import com.example.lootrprospector.scan.StructureProgressScanner;
+import com.example.lootrprospector.scan.StructureScanHistory;
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
@@ -45,7 +46,8 @@ public class DiviningRodItem extends Item {
             return InteractionResultHolder.pass(stack);
         }
         if (serverPlayer.getCooldowns().isOnCooldown(this)) {
-            serverPlayer.displayClientMessage(Component.translatable("message.lootrprospector.cooldown"), true);
+            serverPlayer.sendSystemMessage(Component.translatable("message.lootrprospector.cooldown")
+                    .withStyle(ChatFormatting.RED));
             return InteractionResultHolder.fail(stack);
         }
 
@@ -70,7 +72,8 @@ public class DiviningRodItem extends Item {
             return InteractionResult.PASS;
         }
         if (serverPlayer.getCooldowns().isOnCooldown(this)) {
-            serverPlayer.displayClientMessage(Component.translatable("message.lootrprospector.cooldown"), true);
+            serverPlayer.sendSystemMessage(Component.translatable("message.lootrprospector.cooldown")
+                    .withStyle(ChatFormatting.RED));
             return InteractionResult.FAIL;
         }
 
@@ -134,10 +137,15 @@ public class DiviningRodItem extends Item {
         }
 
         if (structureProgress != null && structureProgress.total() > 0) {
+            boolean firstScan = StructureScanHistory.markFirstScan(player, structureProgress.key());
             message = message.copy().append(Component.translatable(
                     "message.lootrprospector.structure_progress",
                     structureProgress.opened(), structureProgress.total()));
-            if (structureProgress.budgetExceeded()) {
+
+            if (firstScan && structureProgress.incomplete()) {
+                message = message.copy().append(
+                        Component.translatable("message.lootrprospector.structure_first_incomplete"));
+            } else if (structureProgress.budgetExceeded()) {
                 message = message.copy().append(
                         Component.translatable("message.lootrprospector.structure_budget"));
             } else if (structureProgress.unloadedChunks() > 0 && Config.showUnloadedHint) {
@@ -146,7 +154,7 @@ public class DiviningRodItem extends Item {
             }
         }
 
-        player.displayClientMessage(message, true);
+        player.sendSystemMessage(message);
 
         if (result.total() > 0 && Config.chatListLimit > 0) {
             int limit = Math.min(Config.chatListLimit, result.positions().size());

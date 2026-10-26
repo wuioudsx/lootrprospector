@@ -17,7 +17,7 @@ already looted is still visible to you.
 - Finds Lootr chests, trapped chests, barrels, shulkers, `lootr_inventory`
   blocks and (optionally) Lootr chest minecarts.
 - Server-authoritative filtering, cooldown and scan-time budget.
-- Action bar summary, optional nearest-first coordinate list in chat, and sound
+- Chat summary, optional nearest-first coordinate list in chat, and sound
   feedback.
 - Client-side through-wall gold outlines for up to 128 results, for 15 seconds.
 - If you are inside a standard Minecraft structure, every scan also reports
@@ -44,7 +44,7 @@ already looted is still visible to you.
    .\gradlew.bat build --console=plain
    ```
 
-3. The mod jar is written to `build/libs/lootrprospector-0.3.0.jar`.
+3. The mod jar is written to `build/libs/lootrprospector-0.3.1.jar`.
 
 For development, `.\gradlew.bat runClient` and `.\gradlew.bat runServer` use
 the local Lootr jar through ForgeGradle.
@@ -55,8 +55,11 @@ the local Lootr jar through ForgeGradle.
 - Survival recipe (shapeless): amethyst shard + compass + stick.
 - Right-click air or a block to scan. While holding the rod, right-clicking a
   container scans instead of opening it.
-- While standing inside a standard structure, the action bar also reports the
-  structure's Lootr progress, for example `structure progress: 32/80`.
+- All scan feedback is sent to chat. While standing inside a standard
+  structure, the summary also reports the structure's Lootr progress, for
+  example `structure progress: 32/80`.
+- The first scan inside a structure also warns if the structure's chunks are
+  still loading; scan again in a moment for a more complete count.
 - Default cooldown: 5 seconds.
 - Config file: `config/lootrprospector-common.toml`.
 - On a dedicated server, edit the **server's** config file. The server's values
@@ -150,7 +153,7 @@ Other costs to keep in mind:
   their own scan cost; there is no global rate limiter.
 
 For a large radius, the practical result is usually **incomplete rather than
-slow**: the scan stops at the time budget and the action bar says so. Raise
+slow**: the scan stops at the time budget and the chat summary says so. Raise
 `scanTimeBudgetMs` if you prefer completeness and accept a longer tick, or
 lower the radius. Do not set both a huge radius and an unlimited budget on a
 public server.
@@ -162,7 +165,7 @@ public server.
 - Despite the 3D sphere check, chunk columns cover the full world height, so a
   tall world with many block entities increases the per-column cost.
 - `scanTimeBudgetMs` can intentionally truncate a scan; this is reported in the
-  action bar and in the debug log.
+  chat summary and in the debug log.
 - Structure progress is based on Minecraft's `Structure` system. Vanilla
   dungeons (monster rooms) and modded feature-based dungeons are not structures
   and will not show progress.

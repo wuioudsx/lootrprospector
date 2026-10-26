@@ -1,7 +1,7 @@
 # AGENTS.md — Lootr 探测之杖（Lootr Prospector）开发说明
 
 > 这是项目级 agent 指令。任何 agent 在修改本仓库前，先完整阅读本文件。
-> **当前状态：v0.3.0 已实现并编译。** 在 v0.2.0 基础上增加了“玩家所在结构的 Lootr 容器开启进度”（`结构探索进度 opened/total`），只统计已加载区块，兼容标准 `Structure` / `StructureStart` / `StructurePiece` 体系。开发服务器启动与配方解析已通过，客户端实机玩法测试待完成。构建产物：`build/libs/lootrprospector-0.3.0.jar`。
+> **当前状态：v0.3.1 已实现并编译。** 在 v0.3.0 基础上把扫描反馈从 action bar 移到聊天栏，并在结构进度中加入“首次在该结构探测且进度不完整”的提示。结构进度仍只统计已加载区块，兼容标准 `Structure` / `StructureStart` / `StructurePiece` 体系。开发服务器启动与配方解析已通过，客户端实机玩法测试待完成。构建产物：`build/libs/lootrprospector-0.3.1.jar`。
 > 本文件使用中文书写；代码标识符、路径、命令保持英文。若本文件与代码不一致，以代码为准，并同步修正本文件。
 
 ## 1. 结论
@@ -22,17 +22,18 @@
 | 扫描未加载区块里的箱子 | **本方案不做** | 需要强制加载区块或维护全服持久化索引，代价大且不适合一个工具物品 |
 | 不安装 Lootr 也能使用 | **不应该** | 本 mod 依赖 Lootr API，必须在 `mods.toml` 声明 mandatory 依赖 |
 
-### 1.2 当前实现状态（v0.3.0）
+### 1.2 当前实现状态（v0.3.1）
 
 已落地：
 
 - mod id `lootrprospector`、包名 `com.example.lootrprospector`、物品 `lootrprospector:divining_rod`。
 - Lootr 依赖：`libs/lootr-forge-1.20-0.7.35.90.jar`，`flatDir` + `fg.deobf`。
-- 服务端扫描、openers 过滤、距离排序、action bar / 聊天栏 / 音效反馈。
+- 服务端扫描、openers 过滤、距离排序、聊天栏摘要/列表、音效反馈；不再使用 action bar。
 - S -> C 位置包、客户端穿墙线框高亮、过期/换维度清理。
 - 配置、创造栏、无序合成配方、中英文 lang、16×16 贴图。
 - v0.2.0 新增：可配置的扫描时间预算 `scanTimeBudgetMs`、按玩家距离由近到远的区块遍历顺序、`scanRadius` 上限提高到 256、预算耗尽提示、扫描统计日志。
 - v0.3.0 新增：玩家所在结构的 Lootr 进度（`结构探索进度 opened/total`），使用标准 `Structure` / `StructureStart` / `StructurePiece` API；新增 `enableStructureProgress`、`structureProgressBudgetMs`。
+- v0.3.1：移除 action bar 提示，扫描摘要/结构进度/冷却提示全部走聊天栏；结构进度首次探测且不完整时，追加“首次在该结构探测，进度可能尚未完整”的提示（按玩家持久化，每个结构只提示一次）。
 - 开发服务器启动与配方解析已通过。
 
 待用户实机验证：
@@ -102,8 +103,8 @@
 - [ ] 配置半径内（默认 64 格）所有“本人未开启”的 Lootr 容器都能被找到。
 - [ ] 本人已开启的容器不出现；其他玩家开启过的容器仍然出现（多人环境）。
 - [ ] 配置半径外的容器不出现；其他维度的容器不出现。
-- [ ] 结果按距离从近到远排序；action bar 显示总数和最近距离。
-- [ ] 玩家在标准结构内时，action bar 追加“结构探索进度 opened/total”；不在结构内时不显示。
+- [ ] 结果按距离从近到远排序；聊天栏摘要显示总数和最近距离。
+- [ ] 玩家在标准结构内时，聊天栏摘要追加“结构探索进度 opened/total”；不在结构内时不显示。
 - [ ] 可选地在聊天栏列出最近 N 个坐标；点击坐标可复制（可选增强）。
 - [ ] 客户端高亮持续约 15 秒，穿墙可见；再次扫描、换维度、过期后清除。
 - [ ] 退出重进/区块卸载重载后，已开启状态仍然正确。
@@ -259,10 +260,12 @@ runs.configureEach {
 
 扫描完成后：
 
-1. **Action bar**：
+1. **聊天栏摘要**：
    - 有结果：`探测到 %d 个你尚未开启的 Lootr 容器（半径 %d 格，最近 %d 格）`
    - 无结果：`半径 %d 格内没有你尚未开启的 Lootr 容器`
-2. **聊天栏**（可选，默认最近 5 个）：
+   - 玩家在结构内：追加 `结构探索进度 opened/total`
+   - 首次在该结构探测且 `incomplete()`：追加 `首次在该结构探测，进度可能尚未完整，建议稍后再探测一次`
+2. **聊天栏坐标列表**（可选，默认最近 5 个）：
    - 标题：`探测结果（最近 %d 个）：`
    - 每行：`1. [x, y, z] · 距离 17 格`
    - 坐标行可点击复制 `x y z`（用 `ClickEvent.Action.COPY_TO_CLIPBOARD`，可选增强）。
@@ -273,9 +276,10 @@ runs.configureEach {
 5. **提示**：
    - 范围内有未加载区块时，追加“部分区块未加载，结果可能不完整”。
    - 结果超过 `maxHighlights` 时，追加“仅高亮最近 N 个”。
-   - 玩家在结构内时，追加“结构探索进度 opened/total”；结构进度扫描达到预算或结构内区块未加载时，再追加对应提示。结构名只写调试日志，不放进 action bar。
+   - 玩家在结构内时，追加“结构探索进度 opened/total”；结构进度扫描达到预算或结构内区块未加载时，再追加对应提示。
+6. **冷却提示**：也走聊天栏，不再使用 action bar。
 
-聊天列表默认只列最近 5 个，避免刷屏；`chatListLimit=0` 可完全关闭聊天列表。
+聊天列表默认只列最近 5 个，避免刷屏；`chatListLimit=0` 可完全关闭聊天列表。整个扫描过程不再调用 `displayClientMessage`（action bar）。
 
 ### 5.4 客户端高亮
 
@@ -320,8 +324,9 @@ src/main/java/com/example/lootrprospector/
 ├── scan/
 │   ├── ContainerScanner.java         服务端扫描（方块 + 可选矿车）
 │   ├── ScanResult.java               record：总数、位置、未加载区块数、是否截断
-│   ├── StructureProgress.java        record：结构名、opened、total、未加载/预算状态
-│   └── StructureProgressScanner.java 按 StructureStart/StructurePiece 统计结构内 Lootr 容器
+│   ├── StructureProgress.java        record：结构名/key、opened、total、未加载/预算状态
+│   ├── StructureProgressScanner.java 按 StructureStart/StructurePiece 统计结构内 Lootr 容器
+│   └── StructureScanHistory.java     用玩家持久化 NBT 记录“首次探测过哪些结构”
 ├── network/
 │   ├── ModNetwork.java               SimpleChannel 注册与发送
 │   └── ScanResultPacket.java         S -> C：位置列表、维度、半径、高亮时长
@@ -358,7 +363,8 @@ src/main/resources/
 - `DiviningRodItem`
   - `use`（右键空气）和 `useOn`（右键方块）都走同一个 `tryScan`。
   - 检查旁观者、冷却、服务端侧；客户端只返回 swing 结果，不扫描。
-  - 服务端：`ContainerScanner.scan(player, Config.scanRadius)` → `StructureProgressScanner.scan(player)` → 反馈 → 发 `ScanResultPacket` → `player.getCooldowns().addCooldown(this, Config.cooldownTicks)`。
+  - 服务端：`ContainerScanner.scan(player, Config.scanRadius)` → `StructureProgressScanner.scan(player)` → 聊天栏摘要/列表 → 发 `ScanResultPacket` → `player.getCooldowns().addCooldown(this, Config.cooldownTicks)`。
+  - 结构进度首次探测且不完整时，通过 `StructureScanHistory` 判断并追加提示；不调用 `displayClientMessage`。
   - `appendHoverText` 显示半径、冷却和“只显示你尚未开启的容器”。
 - `ContainerScanner`
   - 纯服务端工具类；输入 `ServerPlayer` + 半径，输出 `ScanResult`。
@@ -370,8 +376,12 @@ src/main/resources/
 - `StructureProgressScanner`
   - 从玩家所在 `LevelChunk#getAllReferences()` 找 structure references；只接受 `getChunkNow` 返回的起始区块，读取 `getStartForStructure`，用 `StructurePiece` 包围盒确认玩家在结构内。
   - 遍历结构包围盒内的已加载区块，统计 `StructurePiece` 包围盒内、带 `IHasOpeners` 且属于 `lootr:containers` 的方块实体；`opened` 按玩家 UUID 过滤。
+  - 生成稳定的结构 key（结构 ID + 起始区块坐标），供 `StructureScanHistory` 去重。
   - 不调用 `getChunk`；`structureProgressBudgetMs` 超时后返回部分计数并标记 `budgetExceeded`。
   - 只支持标准 `Structure` 体系；feature 型地牢/自定义 feature 不算结构。
+- `StructureScanHistory`
+  - 把已探测过的结构 key 存进 `player.getPersistentData()` 的字符串列表；每个结构只返回一次 `true`。
+  - 首次探测且结构进度不完整时，聊天栏追加“首次在该结构探测，进度可能尚未完整”的提示；之后改用普通的“部分区块未加载/预算耗尽”提示。
 - `ScanResultPacket`
   - `record ScanResultPacket(List<BlockPos> positions, ResourceLocation dimension, int radius, int highlightTicks, boolean truncated)`。
   - `encode` / `decode` 用 `FriendlyByteBuf.writeBlockPos` / `readBlockPos`。
@@ -474,7 +484,7 @@ public static ScanResult scan(ServerPlayer player, int radius) {
 64 格通常小于服务器视距，但低视距（例如 2 个区块）时，半径边缘的区块可能没加载。此时：
 
 - 不调用 `getChunk` 强行加载；
-- 统计 `unloadedChunks`，通过 action bar 提示“结果可能不完整”；
+- 统计 `unloadedChunks`，通过聊天栏摘要提示“结果可能不完整”；
 - 玩家可以靠近后再扫一次。
 
 这是有意的取舍：一个工具物品不应该改变世界加载状态，也不应该因为扫描造成服务器卡顿。
@@ -656,7 +666,7 @@ RenderSystem.disableBlend();
 
 - [ ] 按 §11 测试清单逐项验证。
 - [ ] 记录一次密集区域的扫描耗时。
-- [ ] 构建 `build/libs/lootrprospector-0.3.0.jar`。
+- [ ] 构建 `build/libs/lootrprospector-0.3.1.jar`。
 - [ ] 在生产实例（Forge 47.4.28 + Lootr 0.7.35.90）做一次冒烟测试。
 
 ## 11. 测试清单
@@ -708,11 +718,13 @@ RenderSystem.disableBlend();
 - [ ] `scanTimeBudgetMs=0`：不限制预算，扫描能正常完成（只在小半径/测试环境验证）。
 - [ ] 把 `scanRadius` 设为 256：能正常扫描；无容器时也不应造成明显卡顿。
 - [ ] 配置改 `scanRadius` / `scanTimeBudgetMs` 后重载或重启，日志与提示使用新值。
-- [ ] 在村庄/矿井/要塞等标准结构内扫描：action bar 出现结构探索进度，且 `opened` 随本人开箱增加。
+- [ ] 在村庄/矿井/要塞等标准结构内扫描：聊天栏摘要出现结构探索进度，且 `opened` 随本人开箱增加。
 - [ ] 打开结构内一个箱子后再扫描：`total` 不变，`opened` +1。
 - [ ] 在结构外扫描：不显示结构进度，不报错。
 - [ ] 标准 modded/datapack 结构：能识别并计数；feature 型地牢：按预期不显示。
 - [ ] 结构内区块未加载/预算很小时：显示结构进度不完整提示，不崩溃。
+- [ ] 首次进入某结构且进度不完整：只出现一次“首次在该结构探测”的提示；第二次扫描不再重复。
+- [ ] 扫描摘要、结构进度、冷却提示只出现在聊天栏，物品栏上方没有任何 action bar 文本。
 - [ ] 双箱子/相邻箱子：不重复计数（如发现重复，记录并修正）。
 - [ ] 密集结构（村庄/地牢）：扫描耗时记录，目标 < 5 ms；超过时记录 `scannedChunks`/`scannedBlockEntities`。
 - [ ] 其他模组添加的 `lootr:containers` 方块：被正确识别（标签驱动）。
@@ -729,7 +741,7 @@ RenderSystem.disableBlend();
 8. **Lootr 版本范围是 `[0.7.35,)`。** 当前只在 0.7.35.90 上验证；升级 Lootr 后要重新跑测试，必要时收窄范围。
 9. **服务端/客户端配置可能不一致。** 实际半径、冷却、高亮时长以服务端发包/校验为准；客户端 tooltip 只是展示。
 10. **高亮是客户端效果。** 专用服务器不加载渲染类；如果客户端没装本 mod，收不到包，也看不到高亮。
-11. **时间预算会主动截断结果。** 默认 5 ms；高半径/慢服务器上可能只扫描了一部分区块，action bar 会提示“扫描达到时间预算”。这是为了避免卡顿，不是 bug。
+11. **时间预算会主动截断结果。** 默认 5 ms；高半径/慢服务器上可能只扫描了一部分区块，聊天栏摘要会提示“扫描达到时间预算”。这是为了避免卡顿，不是 bug。
 12. **半径 > 视距时结果不完整。** 超过服务器视距的区块没有加载，扫描不会强制加载，所以加大半径不等于找到更远的箱子。
 13. **结构进度只支持标准 `Structure` 体系。** 原版地牢（monster room）和以 `Feature` 生成的自定义地牢不是 `Structure`，不会显示进度；使用标准 `StructureStart`/`StructurePiece` 的 modded/datapack 结构可以统计。
 14. **结构进度只统计已加载区块和 `StructurePiece` 包围盒内的容器。** 结构起始区块未加载时不会显示；大型结构可能只显示部分计数。不会为了统计强制加载区块。
